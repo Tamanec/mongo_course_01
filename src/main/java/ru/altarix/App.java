@@ -1,7 +1,12 @@
 package ru.altarix;
 
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import org.bson.Document;
 
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -14,22 +19,22 @@ import static spark.Spark.*;
 public class App 
 {
     public static void main( String[] args ) {
+        Configuration conf = new Configuration(Configuration.VERSION_2_3_26);
+        conf.setClassForTemplateLoading(HelloWorldFreemarker.class, "/templates/");
+        conf.setDefaultEncoding("UTF-8");
+
+        MongoClient client = new MongoClient(new MongoClientURI("mongodb://localhost:27017"));
+        MongoDatabase db = client.getDatabase("test");
+        final MongoCollection<Document> test = db.getCollection("test");
+
+        test.drop();
+        test.insertOne(new Document("name", "MongoDB"));
+
         get("/", ((request, response) -> {
-            Configuration conf = new Configuration(Configuration.VERSION_2_3_26);
-            conf.setClassForTemplateLoading(HelloWorldFreemarker.class, "/templates/");
-            conf.setDefaultEncoding("UTF-8");
+            Document doc = test.find().first();
 
             Map<String, Object> data = new HashMap<>();
-            data.put("user", "John Dou");
-
-            Map<String, Object> animal = new HashMap<>();
-            animal.put("name", "Snowy");
-            animal.put("price", 1200);
-
-            List<Map<String, Object>> animals = new LinkedList<>();
-            animals.add(animal);
-
-            data.put("animals", animals);
+            data.put("user", doc.getString("name"));
 
             StringWriter writer = new StringWriter();
             try {
